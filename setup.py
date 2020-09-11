@@ -199,6 +199,7 @@ setup(
         'docker-image': dependencies.make_extra_packages_docker_image(),
         'tfjs': dependencies.make_extra_packages_tfjs(),
         'examples': dependencies.make_extra_packages_examples(),
+        'test': dependencies.make_required_test_packages(),
         'all': dependencies.make_all_dependency_packages(),
     },
     # TODO(b/158761800): Move to [build-system] requires in pyproject.toml.

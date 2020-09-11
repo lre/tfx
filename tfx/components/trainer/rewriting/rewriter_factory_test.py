@@ -18,21 +18,38 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import importlib
+import unittest
 
 from absl.testing import absltest
-from absl.testing import parameterized
 from tfx.components.trainer.rewriting import rewriter_factory
 
 
-class RewriterFactoryTest(parameterized.TestCase):
+def _tfjs_installed():
+  try:
+    importlib.import_module('tensorflowjs')
+  except ImportError:
+    return False
+  else:
+    return True
 
-  @parameterized.named_parameters(('TFJS', rewriter_factory.TFJS_REWRITER),
-                                  ('TFLite', rewriter_factory.TFLITE_REWRITER))
-  def testRewriterFactorySuccessfullyCreatedRewriter(self, rewriter_name):
-    tfrw = rewriter_factory.create_rewriter(rewriter_name, name='my_rewriter')
+
+class RewriterFactoryTest(absltest.TestCase):
+
+  def testRewriterFactorySuccessfullyCreatedTFLiteRewriter(self):
+    tfrw = rewriter_factory.create_rewriter(rewriter_factory.TFLITE_REWRITER,
+                                            name='my_rewriter')
     self.assertTrue(tfrw)
+    self.assertEqual(type(tfrw).__name__, rewriter_factory.TFLITE_REWRITER)
     self.assertEqual(tfrw.name, 'my_rewriter')
 
+  @unittest.skipUnless(_tfjs_installed(), 'tensorflowjs is not installed')
+  def testRewriterFactorySuccessfullyCreatedTFJSRewriter(self):
+    tfrw = rewriter_factory.create_rewriter(rewriter_factory.TFJS_REWRITER,
+                                            name='my_rewriter')
+    self.assertTrue(tfrw)
+    self.assertEqual(type(tfrw).__name__, rewriter_factory.TFJS_REWRITER)
+    self.assertEqual(tfrw.name, 'my_rewriter')
 
 if __name__ == '__main__':
   absltest.main()
