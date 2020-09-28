@@ -74,9 +74,11 @@ example_gen = CsvExampleGen(input=examples)
 or like below for importing external TFRecord with `tf.Example` directly:
 
 ```python
+from tfx.utils.dsl_utils import tfrecord_input
 from tfx.components.example_gen.import_example_gen.component import ImportExampleGen
 
-example_gen = ImportExampleGen(input_base=path_to_tfrecord_dir)
+examples = tfrecord_input(path_to_tfrecord_dir)
+example_gen = ImportExampleGen(input=examples)
 ```
 
 ## Span, Version and Split

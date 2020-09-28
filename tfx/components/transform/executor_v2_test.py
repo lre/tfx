@@ -12,3 +12,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Tests for tfx.components.transform.executor.
+
+With the native TF2 code path being exercised.
+"""
+import tensorflow as tf
+import tensorflow_transform as tft
+
+from tfx.components.transform import executor_test
+
+
+class ExecutorV2Test(executor_test.ExecutorTest):
+
+  def _use_force_tf_compat_v1(self):
+    return False
+
+
+if __name__ == '__main__':
+  # TODO(b/168641322): remove once TFT post-0.25.0 released and depended on.
+  if tft.__version__ > '0.25.0' and tf.version.VERSION >= '2.4':
+    tf.test.main()

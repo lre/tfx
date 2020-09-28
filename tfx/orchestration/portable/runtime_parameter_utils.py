@@ -125,9 +125,6 @@ def substitute_runtime_parameter(
   Returns:
     None
   """
-  if not isinstance(msg, message.Message):
-    return
-
   # If the message is a pipeline_pb2.Value instance, try to find an substitute
   # with runtime parameter bindings.
   if isinstance(msg, pipeline_pb2.Value):
@@ -153,7 +150,8 @@ def substitute_runtime_parameter(
     return
 
   # For other cases, recursively call into sub-messages if any.
-  for field, sub_message in msg.ListFields():
+  fields = msg.ListFields()
+  for field, sub_message in fields:
     # No-op for non-message types.
     if field.type != descriptor.FieldDescriptor.TYPE_MESSAGE:
       continue

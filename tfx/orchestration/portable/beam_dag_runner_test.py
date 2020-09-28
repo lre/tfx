@@ -17,7 +17,6 @@ from typing import Optional
 
 import mock
 import tensorflow as tf
-from tfx.dsl.compiler import constants
 from tfx.orchestration import metadata
 from tfx.orchestration.portable import beam_dag_runner
 from tfx.orchestration.portable import test_utils
@@ -110,7 +109,6 @@ _INTERMEDIATE_DEPLOYMENT_CONFIG = text_format.Parse("""
 _executed_components = []
 _component_executors = {}
 _component_drivers = {}
-_conponent_to_pipeline_run = {}
 
 
 # TODO(b/162980675): When PythonExecutorOperator is implemented. We don't
@@ -128,11 +126,6 @@ class _FakeComponentAsDoFn(beam_dag_runner._PipelineNodeAsDoFn):
     self._component_id = pipeline_node.node_info.id
     _component_executors[self._component_id] = executor_spec
     _component_drivers[self._component_id] = custom_driver_spec
-    pipeline_run = None
-    for context in pipeline_node.contexts.contexts:
-      if context.type.name == constants.PIPELINE_RUN_ID_PARAMETER_NAME:
-        pipeline_run = context.name.field_value.string_value
-    _conponent_to_pipeline_run[self._component_id] = pipeline_run
 
   def _run_component(self):
     _executed_components.append(self._component_id)
@@ -151,7 +144,6 @@ class BeamDagRunnerTest(test_utils.TfxTest):
     _executed_components.clear()
     _component_executors.clear()
     _component_drivers.clear()
-    _conponent_to_pipeline_run.clear()
 
   @mock.patch.multiple(
       beam_dag_runner,
@@ -173,8 +165,7 @@ class BeamDagRunnerTest(test_utils.TfxTest):
             'my_trainer':
                 text_format.Parse(
                     'class_path: "tfx.components.trainer_executor"',
-                    _PythonClassExecutableSpec()),
-            'my_importer': None,
+                    _PythonClassExecutableSpec())
         })
     self.assertEqual(
         _component_drivers, {
@@ -183,16 +174,10 @@ class BeamDagRunnerTest(test_utils.TfxTest):
                     'class_path: "tfx.components.example_gen_driver"',
                     _PythonClassExecutableSpec()),
             'my_transform': None,
-            'my_trainer': None,
-            'my_importer': None,
+            'my_trainer': None
         })
-    # 'my_importer' has no upstream and can be executed in any order.
-    self.assertIn('my_importer', _executed_components)
-    _executed_components.remove('my_importer')
     self.assertEqual(_executed_components,
                      ['my_example_gen', 'my_transform', 'my_trainer'])
-    # Verifies that every component gets a not-None pipeline_run.
-    self.assertTrue(all(_conponent_to_pipeline_run.values()))
 
   @mock.patch.multiple(
       beam_dag_runner,
@@ -214,8 +199,7 @@ class BeamDagRunnerTest(test_utils.TfxTest):
             'my_trainer':
                 text_format.Parse(
                     'class_path: "tfx.components.trainer_executor"',
-                    _PythonClassExecutableSpec()),
-            'my_importer': None,
+                    _PythonClassExecutableSpec())
         })
     self.assertEqual(
         _component_drivers, {
@@ -224,16 +208,11 @@ class BeamDagRunnerTest(test_utils.TfxTest):
                     'class_path: "tfx.components.example_gen_driver"',
                     _PythonClassExecutableSpec()),
             'my_transform': None,
-            'my_trainer': None,
-            'my_importer': None,
+            'my_trainer': None
         })
-    # 'my_importer' has no upstream and can be executed in any order.
-    self.assertIn('my_importer', _executed_components)
-    _executed_components.remove('my_importer')
     self.assertEqual(_executed_components,
                      ['my_example_gen', 'my_transform', 'my_trainer'])
-    # Verifies that every component gets a not-None pipeline_run.
-    self.assertTrue(all(_conponent_to_pipeline_run.values()))
+
 
 if __name__ == '__main__':
   tf.test.main()
