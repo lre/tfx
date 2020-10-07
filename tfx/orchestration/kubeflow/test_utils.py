@@ -621,6 +621,11 @@ class BaseKubeflowTest(tf.test.TestCase):
         '--temp_location=' +
         os.path.join(self._pipeline_root(pipeline_name), 'tmp'),
         '--region=' + self._GCP_REGION,
+
+        # TODO(b/170304777): Remove following experiments once runner v2 and
+        # unified workers are default in Dataflow.
+        '--experiments=use_runner_v2',
+        '--experiments=use_unified_worker',
     ]
     return pipeline
 
