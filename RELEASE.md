@@ -8,6 +8,8 @@
     range configuration.
 *   Added ContainerExecutableSpec in portable IR to support container components
     portable orchestrator.
+*   Added the LocalDagRunner to allow local pipeline execution without using
+    Apache Beam.
 
 ## Breaking changes
 
