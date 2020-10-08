@@ -15,6 +15,7 @@
 import json
 import re
 
+from tfx.components.common_nodes import importer_node
 from tfx.components.common_nodes import resolver_node
 from tfx.dsl.compiler import compiler_utils
 from tfx.dsl.compiler import constants
@@ -135,10 +136,35 @@ class Compiler(object):
         artifact_type = value.type._get_artifact_type()  # pylint: disable=protected-access
         output_spec.artifact_spec.type.CopyFrom(artifact_type)
 
+    # TODO(b/170694459): Refactor special nodes as plugins.
+    # Step 4.1: Special treament for Importer node
+    if compiler_utils.is_importer(tfx_node):
+      for key, value in tfx_node.outputs.items():
+        output_spec = node.outputs.outputs[key]
+        artifact_type = value.type._get_artifact_type()  # pylint: disable=protected-access
+        output_spec.artifact_spec.type.CopyFrom(artifact_type)
+        # Attach additional properties for artifacts produced by importer nodes.
+        for property_name, property_value in tfx_node.exec_properties[
+            importer_node.PROPERTIES_KEY].items():
+          value_field = output_spec.artifact_spec.additional_properties[
+              property_name].field_value
+          compiler_utils.set_field_value_pb(value_field, property_value)
+        for property_name, property_value in tfx_node.exec_properties[
+            importer_node.CUSTOM_PROPERTIES_KEY].items():
+          value_field = output_spec.artifact_spec.additional_custom_properties[
+              property_name].field_value
+          compiler_utils.set_field_value_pb(value_field, property_value)
+
     # Step 5: Node parameters
     if not compiler_utils.is_resolver(tfx_node):
       for key, value in tfx_node.exec_properties.items():
         if value is None:
+          continue
+        # Ignore following two properties for a importer node, because they are
+        # already attached to the artifacts produced by the importer node.
+        if compiler_utils.is_importer(tfx_node) and (
+            key == importer_node.PROPERTIES_KEY or
+            key == importer_node.CUSTOM_PROPERTIES_KEY):
           continue
         parameter_value = node.parameters.parameters[key]
 
@@ -153,16 +179,14 @@ class Compiler(object):
           compiler_utils.set_runtime_parameter_pb(
               parameter_value.runtime_parameter, runtime_param.name,
               runtime_param.ptype, runtime_param.default)
-        elif isinstance(value, str):
-          parameter_value.field_value.string_value = value
-        elif isinstance(value, int):
-          parameter_value.field_value.int_value = value
-        elif isinstance(value, float):
-          parameter_value.field_value.double_value = value
         else:
-          raise ValueError(
-              "Component {} got unsupported parameter {} with type {}.".format(
-                  tfx_node.id, key, type(value)))
+          try:
+            compiler_utils.set_field_value_pb(parameter_value.field_value,
+                                              value)
+          except ValueError:
+            raise ValueError(
+                "Component {} got unsupported parameter {} with type {}."
+                .format(tfx_node.id, key, type(value)))
 
     # Step 6: Executor spec and optional driver spec for components
     if compiler_utils.is_component(tfx_node):
